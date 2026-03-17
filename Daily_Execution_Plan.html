@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Daily Execution Plan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13151c;
+    --surface2: #1a1d27;
+    --border: #252836;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --blue: #3b82f6;
+    --blue-dim: #1e3a5f;
+    --green: #22c55e;
+    --green-dim: #14342a;
+    --purple: #a855f7;
+    --purple-dim: #2d1b4e;
+    --orange: #f97316;
+    --orange-dim: #3d1f0a;
+    --gray: #94a3b8;
+    --gray-dim: #1e2333;
+    --yellow: #eab308;
+    --yellow-dim: #2d2508;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, #1a2540 0%, transparent 70%);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  /* Header */
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,15,20,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Cards */
+  .block-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 22px 24px;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .block-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    border-radius: 4px 0 0 4px;
+  }
+
+  .block-card:hover {
+    border-color: #353850;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  /* Active card */
+  .block-card.active {
+    border-color: rgba(255,255,255,0.15);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.07), 0 16px 48px rgba(0,0,0,0.5);
+    background: var(--surface2);
+  }
+
+  .block-card.active .active-pulse {
+    display: flex;
+  }
+
+  .active-pulse {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #22c55e;
+    margin-bottom: 10px;
+  }
+
+  .active-dot {
+    width: 7px; height: 7px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: blink 1.4s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Category color strips */
+  .cat-interview::before { background: var(--blue); }
+  .cat-freelance::before  { background: var(--green); }
+  .cat-portfolio::before  { background: var(--purple); }
+  .cat-telegram::before   { background: var(--orange); }
+  .cat-health::before     { background: var(--gray); }
+  .cat-break::before      { background: var(--yellow); }
+
+  /* Tag badges */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 99px;
+  }
+  .tag-interview { background: var(--blue-dim); color: var(--blue); }
+  .tag-freelance  { background: var(--green-dim); color: var(--green); }
+  .tag-portfolio  { background: var(--purple-dim); color: var(--purple); }
+  .tag-telegram   { background: var(--orange-dim); color: var(--orange); }
+  .tag-health     { background: var(--gray-dim); color: var(--gray); }
+  .tag-break      { background: var(--yellow-dim); color: var(--yellow); }
+
+  /* Progress bar */
+  .progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #3b82f6, #22c55e);
+    transition: width 0.6s ease;
+  }
+
+  /* Step bullets */
+  .step-item::before {
+    content: '→';
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .rule-do::before   { content: '✓'; color: #22c55e; flex-shrink: 0; }
+  .rule-dont::before { content: '✗'; color: #ef4444; flex-shrink: 0; }
+
+  /* Fade in animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Stagger children */
+  .block-card:nth-child(1)  { animation-delay: 0.03s; }
+  .block-card:nth-child(2)  { animation-delay: 0.06s; }
+  .block-card:nth-child(3)  { animation-delay: 0.09s; }
+  .block-card:nth-child(4)  { animation-delay: 0.12s; }
+  .block-card:nth-child(5)  { animation-delay: 0.15s; }
+  .block-card:nth-child(6)  { animation-delay: 0.18s; }
+  .block-card:nth-child(7)  { animation-delay: 0.21s; }
+  .block-card:nth-child(8)  { animation-delay: 0.24s; }
+  .block-card:nth-child(9)  { animation-delay: 0.27s; }
+  .block-card:nth-child(10) { animation-delay: 0.30s; }
+  .block-card:nth-child(11) { animation-delay: 0.33s; }
+  .block-card:nth-child(12) { animation-delay: 0.36s; }
+  .block-card:nth-child(13) { animation-delay: 0.39s; }
+  .block-card:nth-child(14) { animation-delay: 0.42s; }
+  .block-card:nth-child(15) { animation-delay: 0.45s; }
+  .block-card:nth-child(16) { animation-delay: 0.48s; }
+
+  /* Toggle button */
+  .toggle-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 10px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .toggle-btn:hover, .toggle-btn.active-btn {
+    background: var(--border);
+    color: var(--text);
+    border-color: #353850;
+  }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* Warning banner */
+  .warning-banner {
+    background: linear-gradient(135deg, #1c1206, #2d1a06);
+    border: 1px solid #6b3c10;
+    border-radius: 14px;
+    padding: 12px 18px;
+  }
+
+  /* Timeline connector */
+  .timeline-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+
+  .hidden-block { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ STICKY HEADER ══════════════════════════════════ -->
+<header class="sticky-header">
+  <div style="max-width:780px;margin:0 auto;padding:16px 20px;">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <!-- Left: branding + time -->
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <span style="font-size:18px;">⚡</span>
+          <span style="font-size:15px;font-weight:700;letter-spacing:0.02em;">Daily Execution Plan</span>
+        </div>
+        <div class="mono" style="font-size:12px;color:var(--muted);">
+          <span id="live-time">--:--:-- --</span>
+          &nbsp;·&nbsp;
+          <span id="live-date">---</span>
+        </div>
+      </div>
+
+      <!-- Right: motto -->
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:var(--muted);font-style:italic;max-width:220px;line-height:1.5;">
+          "Execute the day. Don't negotiate with laziness."
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress bar row -->
+    <div style="margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:120px;">
+        <div style="background:var(--border);border-radius:99px;height:5px;overflow:hidden;">
+          <div class="progress-fill" id="progress-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);white-space:nowrap;" class="mono">
+        <span id="done-count" style="color:var(--green);">0</span>
+        / <span id="total-count">0</span> blocks
+        &nbsp;·&nbsp;
+        <span id="remain-count" style="color:var(--yellow);">0</span> left
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <button class="toggle-btn active-btn" id="btn-all" onclick="setView('all')">Full Day</button>
+      <button class="toggle-btn" id="btn-deep" onclick="setView('deep')">Deep Work Only</button>
+      <button class="toggle-btn" onclick="scrollToCurrent()" style="margin-left:auto;">↓ Jump to Now</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════ MAIN CONTENT ══════════════════════════════════ -->
+<main style="max-width:780px;margin:0 auto;padding:24px 20px 80px;">
+
+  <!-- Warning banner -->
+  <div class="warning-banner" style="margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+    <span style="font-size:20px;">⚠️</span>
+    <div>
+      <div style="font-size:13px;font-weight:700;color:#f97316;">Miss the morning = lose the entire day.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Protect your first 2 hours like they're your most valuable asset.</div>
+    </div>
+  </div>
+
+  <!-- Stats strip -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:var(--blue);" class="mono">8h</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">Focused Work</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:var(--green);" class="mono">16</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">Time Blocks</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:var(--purple);" class="mono">6:30</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">Start Time</div>
+    </div>
+  </div>
+
+  <!-- ══════════ BLOCK CARDS ══════════ -->
+  <div id="timeline" style="display:flex;flex-direction:column;gap:14px;">
+
+    <!-- 1. Wake Up -->
+    <div class="block-card cat-health" data-start="06:30" data-end="07:00" data-category="health" id="block-0">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">06:30</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🌅 Wake Up</div>
+        </div>
+        <span class="tag tag-health">🧘 Health</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Activate body + brain</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Drink a full glass of water immediately</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Get 5 minutes of natural sunlight</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Make your bed — signal that the day has started</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">No snooze button</div>
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">No phone in first 10 min</div>
+      </div>
+    </div>
+
+    <!-- 2. Morning Hygiene -->
+    <div class="block-card cat-health" data-start="06:30" data-end="07:00" data-category="health" id="block-1">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">06:30 – 07:00</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🚿 Morning Hygiene</div>
+        </div>
+        <span class="tag tag-health">🧘 Health</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Fully wake the body and feel clean</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Brush teeth thoroughly</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Face wash — cold water to jolt awake</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Bath / shower</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Quick grooming — ready like it's a work day</div>
+      </div>
+    </div>
+
+    <!-- 3. Body Activation -->
+    <div class="block-card cat-health" data-start="07:00" data-end="07:20" data-category="health" id="block-2">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">07:00 – 07:20</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🏃 Body Activation</div>
+        </div>
+        <span class="tag tag-health">🧘 Health</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Remove brain fog — get blood moving</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Full body stretch (5 min)</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Brisk walk outdoors if possible</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Light exercise: push-ups or jumping jacks</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-do" style="display:flex;gap:6px;font-size:12px;color:#22c55e;">Keep it brief — 20 min max</div>
+      </div>
+    </div>
+
+    <!-- 4. Breakfast -->
+    <div class="block-card cat-health" data-start="07:20" data-end="07:45" data-category="health" id="block-3">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">07:20 – 07:45</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🍳 Breakfast</div>
+        </div>
+        <span class="tag tag-health">🧘 Health</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Quick energy — fuel the first deep work block</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Cook a simple, nutritious meal — eggs, oats, or leftovers</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Eat without distractions — no phone at table</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">No complex cooking — time is limited</div>
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">No scrolling during meals</div>
+      </div>
+    </div>
+
+    <!-- 5. Deep Work: Interview Prep -->
+    <div class="block-card cat-interview" data-start="08:00" data-end="10:00" data-category="interview" data-deep="true" id="block-4">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">08:00 – 10:00 · 2 hours</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">💻 Deep Work: Interview Prep</div>
+        </div>
+        <span class="tag tag-interview">🔵 Interview</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Career growth — land the next role</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Study JavaScript internals, React patterns, or system design</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Write structured notes — don't just read, synthesize</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Code practical examples for each concept studied</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Review previous notes for 10 min before starting</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">Phone on silent — face down</div>
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">No switching tabs — one topic at a time</div>
+        <div class="rule-do" style="display:flex;gap:6px;font-size:12px;color:#22c55e;">Use Pomodoro: 50 min work / 10 min break</div>
+      </div>
+    </div>
+
+    <!-- 6. Client / Planning -->
+    <div class="block-card cat-freelance" data-start="10:00" data-end="10:30" data-category="freelance" id="block-5">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">10:00 – 10:30 · 30 min</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">📋 Client / Planning</div>
+        </div>
+        <span class="tag tag-freelance">🟢 Freelance</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Align on priorities before execution</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Client calls or async check-ins</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Review task list — identify today's top 3 deliverables</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Reply to pending messages and set expectations</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-do" style="display:flex;gap:6px;font-size:12px;color:#22c55e;">Keep meetings short — 30 min hard cap</div>
+      </div>
+    </div>
+
+    <!-- 7. Freelance Work -->
+    <div class="block-card cat-freelance" data-start="10:30" data-end="13:00" data-category="freelance" data-deep="true" id="block-6">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">10:30 – 13:00 · 2.5 hours</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">💼 Freelance Work</div>
+        </div>
+        <span class="tag tag-freelance">🟢 Freelance</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Income work — deliver quality, maintain trust</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Execute the top 3 tasks identified in planning</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Write clean, documented code</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Commit progress every 45 min</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">Deep focus — no casual browsing</div>
+        <div class="rule-do" style="display:flex;gap:6px;font-size:12px;color:#22c55e;">Block distractions with site blocker</div>
+      </div>
+    </div>
+
+    <!-- 8. Lunch -->
+    <div class="block-card cat-health" data-start="13:00" data-end="13:40" data-category="health" id="block-7">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">13:00 – 13:40 · 40 min</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🍽️ Lunch</div>
+        </div>
+        <span class="tag tag-health">🧘 Health</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Refuel — cook smart for the whole afternoon</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Cook enough for 2 meals (lunch + dinner)</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Eat mindfully — no phone</div>
+      </div>
+    </div>
+
+    <!-- 9. Rest -->
+    <div class="block-card cat-break" data-start="13:40" data-end="14:00" data-category="break" id="block-8">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">13:40 – 14:00 · 20 min</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">😴 Post-Lunch Rest</div>
+        </div>
+        <span class="tag tag-break">🟡 Break</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Recharge before afternoon deep work</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Lie down or close eyes — power nap optional</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Keep it strictly 20 min — set an alarm</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">No phone — no exception</div>
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">Don't extend to 1 hour — it kills momentum</div>
+      </div>
+    </div>
+
+    <!-- 10. Deep Work: Interview Practice -->
+    <div class="block-card cat-interview" data-start="14:00" data-end="15:30" data-category="interview" data-deep="true" id="block-9">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">14:00 – 15:30 · 1.5 hours</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🧠 Deep Work: Interview Practice</div>
+        </div>
+        <span class="tag tag-interview">🔵 Interview</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Convert knowledge into performance</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Solve LeetCode / coding problems (easy → medium)</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Explain your past projects out loud — record yourself</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Rehearse mock answers: STAR format for behaviorals</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-do" style="display:flex;gap:6px;font-size:12px;color:#22c55e;">Say the answer out loud — don't just think it</div>
+      </div>
+    </div>
+
+    <!-- 11. Break -->
+    <div class="block-card cat-break" data-start="15:30" data-end="16:00" data-category="break" id="block-10">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">15:30 – 16:00 · 30 min</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">☕ Break</div>
+        </div>
+        <span class="tag tag-break">🟡 Break</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Mental reset before the second half</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Walk — change your environment</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Get fresh air or make tea/coffee</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Do something completely non-screen</div>
+      </div>
+    </div>
+
+    <!-- 12. Portfolio Building -->
+    <div class="block-card cat-portfolio" data-start="16:00" data-end="17:30" data-category="portfolio" data-deep="true" id="block-11">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">16:00 – 17:30 · 1.5 hours</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🎨 Portfolio Building</div>
+        </div>
+        <span class="tag tag-portfolio">🟣 Portfolio</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Build your proof-of-work — make it undeniable</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Improve UI — visual polish, responsiveness</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Add case studies with problem → solution → outcome</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Optimize performance, SEO, and loading speed</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-do" style="display:flex;gap:6px;font-size:12px;color:#22c55e;">Ship something visible today — no invisible work</div>
+      </div>
+    </div>
+
+    <!-- 13. Telegram AI Work -->
+    <div class="block-card cat-telegram" data-start="17:30" data-end="18:30" data-category="telegram" data-deep="true" id="block-12">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">17:30 – 18:30 · 1 hour</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🤖 Telegram AI Project</div>
+        </div>
+        <span class="tag tag-telegram">🟠 Telegram</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Build the AI side project — systematic, not reactive</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Match analysis — process data for prediction input</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Refine prediction logic — improve model accuracy</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Log findings in a structured format</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">Max 1 hour — don't let it bleed into dinner</div>
+      </div>
+    </div>
+
+    <!-- 14. Dinner -->
+    <div class="block-card cat-health" data-start="18:30" data-end="19:00" data-category="health" id="block-13">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">18:30 – 19:00 · 30 min</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🍛 Dinner</div>
+        </div>
+        <span class="tag tag-health">🧘 Health</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Fuel the evening — reuse lunch prep</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Use the second portion from afternoon cooking</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Eat without screens — this is a reset moment</div>
+      </div>
+    </div>
+
+    <!-- 15. Relax -->
+    <div class="block-card cat-break" data-start="19:00" data-end="20:00" data-category="break" id="block-14">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">19:00 – 20:00 · 1 hour</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🌙 Relax</div>
+        </div>
+        <span class="tag tag-break">🟡 Break</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Earned downtime — protect your mental energy</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Read, watch something intentional, or listen to music</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Journal your day — 5 mins</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">No Instagram reels / TikTok — destroys sleep</div>
+      </div>
+    </div>
+
+    <!-- 16. Light Work -->
+    <div class="block-card cat-interview" data-start="20:00" data-end="21:00" data-category="interview" id="block-15">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">20:00 – 21:00 · 1 hour</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">📖 Light Work</div>
+        </div>
+        <span class="tag tag-interview">🔵 Interview</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Consolidate the day — low pressure, high value</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Revision of what was studied in the morning</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Small coding exercises or reading docs</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Spaced repetition flashcards if available</div>
+      </div>
+    </div>
+
+    <!-- 17. Night Routine -->
+    <div class="block-card cat-health" data-start="21:00" data-end="21:30" data-category="health" id="block-16">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">21:00 – 21:30 · 30 min</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">🌜 Night Routine</div>
+        </div>
+        <span class="tag tag-health">🧘 Health</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Signal your brain that the day is complete</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Brush teeth, skincare, final hygiene</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Prepare tomorrow's plan — write 3 priorities</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Lay out clothes, water bottle, anything needed</div>
+      </div>
+    </div>
+
+    <!-- 18. Sleep -->
+    <div class="block-card cat-health" data-start="22:00" data-end="06:30" data-category="health" id="block-17">
+      <div class="active-pulse"><div class="active-dot"></div>NOW</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:4px;">22:00 · 8.5 hrs</div>
+          <div style="font-size:18px;font-weight:700;line-height:1.2;">💤 Sleep</div>
+        </div>
+        <span class="tag tag-health">🧘 Health</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Recovery is productive — sleep is non-negotiable</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Phone out of reach — or on airplane mode</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Dark room, cool temperature</div>
+        <div class="step-item" style="display:flex;gap:8px;font-size:13px;color:var(--text);">Wake alarm set for 06:30 — do not move it</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="rule-dont" style="display:flex;gap:6px;font-size:12px;color:#ef4444;">No screens after lying down</div>
+        <div class="rule-do" style="display:flex;gap:6px;font-size:12px;color:#22c55e;">8+ hours protects tomorrow's deep work</div>
+      </div>
+    </div>
+
+  </div><!-- /timeline -->
+</main>
+
+<!-- ══════════════════════════════════ JAVASCRIPT ══════════════════════════════════ -->
+<script>
+  // ── Helper: parse "HH:MM" to minutes since midnight
+  function toMinutes(str) {
+    const [h, m] = str.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  // ── Live clock
+  function updateClock() {
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2,'0');
+    const m = now.getMinutes().toString().padStart(2,'0');
+    const s = now.getSeconds().toString().padStart(2,'0');
+    const ampm = h < 12 ? 'AM' : 'PM';
+    const h12 = (h % 12 || 12).toString().padStart(2,'0');
+    document.getElementById('live-time').textContent = `${h12}:${m}:${s} ${ampm}`;
+
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('live-date').textContent =
+      `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+  }
+
+  // ── Highlight current block
+  function highlightCurrent() {
+    const now = new Date();
+    const curMins = now.getHours() * 60 + now.getMinutes();
+
+    const cards = document.querySelectorAll('.block-card');
+    let activeIndex = -1;
+    let completedCount = 0;
+
+    cards.forEach((card, i) => {
+      const startMins = toMinutes(card.dataset.start);
+      let endMins   = toMinutes(card.dataset.end);
+      // Handle overnight (sleep block)
+      if (endMins < startMins) endMins += 24 * 60;
+
+      card.classList.remove('active');
+
+      // Completed: end time is in the past
+      if (endMins <= curMins) {
+        completedCount++;
+      }
+
+      // Active: now is within start–end
+      if (curMins >= startMins && curMins < endMins) {
+        card.classList.add('active');
+        activeIndex = i;
+      }
+    });
+
+    // Update progress
+    const total = cards.length;
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('done-count').textContent  = completedCount;
+    document.getElementById('remain-count').textContent = Math.max(0, total - completedCount);
+    const pct = total > 0 ? (completedCount / total) * 100 : 0;
+    document.getElementById('progress-bar').style.width = pct + '%';
+  }
+
+  // ── Scroll to current block
+  function scrollToCurrent() {
+    const active = document.querySelector('.block-card.active');
+    if (active) {
+      active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      // Scroll to first block if none active yet
+      const first = document.querySelector('.block-card');
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  // ── Toggle view
+  let currentView = 'all';
+  function setView(mode) {
+    currentView = mode;
+    document.getElementById('btn-all').classList.toggle('active-btn', mode === 'all');
+    document.getElementById('btn-deep').classList.toggle('active-btn', mode === 'deep');
+
+    document.querySelectorAll('.block-card').forEach(card => {
+      if (mode === 'deep') {
+        card.style.display = card.dataset.deep === 'true' ? '' : 'none';
+      } else {
+        card.style.display = '';
+      }
+    });
+  }
+
+  // ── Init
+  updateClock();
+  highlightCurrent();
+  setInterval(updateClock, 1000);
+  setInterval(highlightCurrent, 30000); // refresh every 30s
+</script>
+</body>
+</html>
